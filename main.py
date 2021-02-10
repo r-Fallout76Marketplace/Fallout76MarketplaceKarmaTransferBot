@@ -3,6 +3,7 @@ import json
 import re
 import sqlite3
 import time
+import traceback
 
 import requests
 
@@ -50,8 +51,25 @@ def transfer_karma(comment, submission):
     if result is not None:
         bot_responses.already_transferred(comment, result)
         return
+    # Get karma from market 76
     user_flair = submission.author_flair_text.split()
-    karma = int(user_flair[0][1:])
+    try:
+        karma = int(user_flair[0][1:])
+    except ValueError:
+        bot_responses.something_went_wrong(comment)
+        return
+
+    # Get karma from f076mktpl
+    user_flair = comment.author_flair_text
+    if user_flair is not None:
+        if "Karma:" in user_flair:
+            user_flair = submission.author_flair_text.split()
+            try:
+                karma += int(user_flair.split()[-1])
+            except ValueError:
+                bot_responses.something_went_wrong(comment)
+                return
+
     assign_flair(karma_value=karma, author_name=author_name)
     url = 'https://www.reddit.com{}'.format(comment.permalink)
     cursor.execute("""INSERT INTO karma_transfer_history VALUES ('{}', '{}', '{}', '{}')""".format(current_date_time,
@@ -59,6 +77,7 @@ def transfer_karma(comment, submission):
                                                                                                    karma,
                                                                                                    url))
     karma_transfer_db.commit()
+    cursor.close()
     bot_responses.transfer_successful(comment, karma)
     return
 
@@ -86,10 +105,14 @@ def main():
                 if check_comments(comment) == -1:
                     bot_responses.no_submission_found(comment)
         except KeyboardInterrupt:
-            print("Shutting down.")
+            print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
             quit()
-        except Exception as e:
-            send_message_to_discord(e)
+        except Exception:
+            tb = traceback.format_exc()
+            try:
+                send_message_to_discord(tb)
+            except Exception:
+                print("Error sending message to discord")
             time.sleep(timing * 60)
             comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
 
@@ -106,4 +129,5 @@ if __name__ == '__main__':
                                                     )""")
     karma_transfer_db.commit()
     cursor.close()
+    print("Bot is now live!", time.strftime('%I:%M %p %Z'))
     main()

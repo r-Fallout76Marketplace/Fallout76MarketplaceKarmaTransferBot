@@ -36,3 +36,8 @@ def no_submission_found(comment):
     comment_body = "Hi " + comment.author.name + "! The bot looked at your past 100 submissions and could not find. "
     comment_body += "any that were posted to market76. Please contact mods if you think this is a mistake."
     reply(comment, comment_body)
+
+
+def something_went_wrong(comment):
+    comment_body = "Hi " + comment.author.name + "! something went wrong. Please contact mods asap."
+    reply(comment, comment_body)
