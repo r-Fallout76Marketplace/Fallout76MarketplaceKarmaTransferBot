@@ -33,7 +33,7 @@ def already_transferred(comment, result):
 
 
 def no_submission_found(comment):
-    comment_body = "Hi " + comment.author.name + "! The bot looked at your past 100 submissions and could not find. "
+    comment_body = "Hi " + comment.author.name + "! The bot looked at your past ~1000 submissions and could not find. "
     comment_body += "any that were posted to market76. Please contact mods if you think this is a mistake."
     reply(comment, comment_body)
 

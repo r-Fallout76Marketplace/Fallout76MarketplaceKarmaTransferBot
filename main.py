@@ -86,7 +86,7 @@ def check_comments(comment):
     comment_body = comment.body.lower().strip()
     if re.search(command, comment_body, re.IGNORECASE):
         author = comment.author
-        submissions = author.submissions.new()
+        submissions = author.submissions.new(limit=None)
         for submission in submissions:
             if submission.subreddit == CONFIG.market76:
                 transfer_karma(comment, submission)
