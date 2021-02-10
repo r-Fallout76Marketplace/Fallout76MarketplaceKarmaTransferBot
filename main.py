@@ -111,6 +111,7 @@ def main():
             tb = traceback.format_exc()
             try:
                 send_message_to_discord(tb)
+                print(tb)
             except Exception:
                 print("Error sending message to discord")
             time.sleep(timing * 60)
