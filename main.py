@@ -76,7 +76,7 @@ def transfer_karma(comment, submission):
     url = 'https://www.reddit.com{}'.format(comment.permalink)
     cursor.execute("""INSERT INTO karma_transfer_history VALUES ('{}', '{}', '{}', '{}')""".format(current_date_time,
                                                                                                    author_name,
-                                                                                                   karma,
+                                                                                                   total_karma,
                                                                                                    url))
     karma_transfer_db.commit()
     cursor.close()
