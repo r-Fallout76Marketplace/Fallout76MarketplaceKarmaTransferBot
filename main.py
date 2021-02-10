@@ -63,10 +63,10 @@ def transfer_karma(comment, submission):
     user_flair = comment.author_flair_text
     if user_flair is not None:
         if "Karma:" in user_flair:
-            user_flair = submission.author_flair_text.split()
             try:
-                karma += int(user_flair.split()[-1])
-            except ValueError:
+                user_flair = submission.author_flair_text.split()
+                karma += int(user_flair[-1])
+            except ValueError or AttributeError:
                 bot_responses.something_went_wrong(comment)
                 return
 
