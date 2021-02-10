@@ -53,8 +53,9 @@ def transfer_karma(comment, submission):
         return
     # Get karma from market 76
     user_flair = submission.author_flair_text.split()
+    our_karma = 0
     try:
-        karma = int(user_flair[0][1:])
+        m76_karma = int(user_flair[0][1:])
     except ValueError:
         bot_responses.something_went_wrong(comment, "r/Market76")
         return
@@ -65,12 +66,13 @@ def transfer_karma(comment, submission):
         if "Karma:" in user_flair:
             try:
                 user_flair = comment.author_flair_text.split()
-                karma += int(user_flair[-1])
+                our_karma = int(user_flair[-1])
             except ValueError or AttributeError:
                 bot_responses.something_went_wrong(comment, "r/Fallout76Marketplace")
                 return
 
-    assign_flair(karma_value=karma, author_name=author_name)
+    total_karma = m76_karma + our_karma
+    assign_flair(karma_value=total_karma, author_name=author_name)
     url = 'https://www.reddit.com{}'.format(comment.permalink)
     cursor.execute("""INSERT INTO karma_transfer_history VALUES ('{}', '{}', '{}', '{}')""".format(current_date_time,
                                                                                                    author_name,
@@ -78,7 +80,7 @@ def transfer_karma(comment, submission):
                                                                                                    url))
     karma_transfer_db.commit()
     cursor.close()
-    bot_responses.transfer_successful(comment, karma)
+    bot_responses.transfer_successful(comment, m76_karma)
     return
 
 
