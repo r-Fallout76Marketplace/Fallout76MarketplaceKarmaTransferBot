@@ -56,7 +56,7 @@ def transfer_karma(comment, submission):
     try:
         karma = int(user_flair[0][1:])
     except ValueError:
-        bot_responses.something_went_wrong(comment)
+        bot_responses.something_went_wrong(comment, "r/Market76")
         return
 
     # Get karma from f076mktpl
@@ -64,10 +64,10 @@ def transfer_karma(comment, submission):
     if user_flair is not None:
         if "Karma:" in user_flair:
             try:
-                user_flair = submission.author_flair_text.split()
+                user_flair = comment.author_flair_text.split()
                 karma += int(user_flair[-1])
             except ValueError or AttributeError:
-                bot_responses.something_went_wrong(comment)
+                bot_responses.something_went_wrong(comment, "r/Fallout76Marketplace")
                 return
 
     assign_flair(karma_value=karma, author_name=author_name)
@@ -109,9 +109,9 @@ def main():
             quit()
         except Exception:
             tb = traceback.format_exc()
+            print(tb)
             try:
                 send_message_to_discord(tb)
-                print(tb)
             except Exception:
                 print("Error sending message to discord")
             time.sleep(timing * 60)

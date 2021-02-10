@@ -38,6 +38,7 @@ def no_submission_found(comment):
     reply(comment, comment_body)
 
 
-def something_went_wrong(comment):
-    comment_body = "Hi " + comment.author.name + "! something went wrong. Please contact mods asap."
+def something_went_wrong(comment, subreddit_name):
+    comment_body = "Hi " + comment.author.name + "! something went wrong while getting "
+    comment_body += "karma from {}. Please contact mods asap.".format(subreddit_name)
     reply(comment, comment_body)
