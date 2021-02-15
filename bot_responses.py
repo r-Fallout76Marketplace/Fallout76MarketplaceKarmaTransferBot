@@ -4,6 +4,8 @@ import prawcore
 
 def reply(comment_or_submission, body):
     response = body + "\n\n ^(This action was performed by a bot, please contact the mods for any questions.)"
+    response += "[See disclaimer](https://www.reddit.com/user/Vault-TecTradingCo/comments/lkllre" \
+                "/disclaimer_for_rfallout76marketplace/)) "
     try:
         new_comment = comment_or_submission.reply(response)
         new_comment.mod.distinguish(how="yes")

@@ -5,6 +5,7 @@ import sqlite3
 import time
 import traceback
 
+import prawcore
 import requests
 
 import CONFIG
@@ -94,10 +95,11 @@ def check_comments(comment):
                 transfer_karma(comment, submission)
                 return 1
         return -1
+    return 0
 
 
 def main():
-    timing = 2
+    failed_attempt = 1
     comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
     while True:
         try:
@@ -106,17 +108,23 @@ def main():
                     break
                 if check_comments(comment) == -1:
                     bot_responses.no_submission_found(comment)
+                failed_attempt = 1
         except KeyboardInterrupt:
             print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
             quit()
-        except Exception:
+        except Exception as exception:
             tb = traceback.format_exc()
             print(tb)
             try:
                 send_message_to_discord(tb)
             except Exception:
                 print("Error sending message to discord")
-            time.sleep(timing * 60)
+            # In case of server error pause for two minutes
+            if isinstance(exception, prawcore.exceptions.ServerError):
+                print("Waiting 2 minutes")
+                # Try again after a pause
+                time.sleep(120 * failed_attempt)
+                failed_attempt = failed_attempt + 1
             comment_stream = CONFIG.fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
 
 
