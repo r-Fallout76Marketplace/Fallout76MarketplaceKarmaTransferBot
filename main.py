@@ -55,9 +55,15 @@ def transfer_karma(comment, submission):
     # Get karma from market 76
     user_flair = submission.author_flair_text.split()
     our_karma = 0
-    try:
-        m76_karma = int(user_flair[0][1:])
-    except ValueError:
+    m76_karma = None
+    # Check every element in flair if int is found break the loop
+    for item in user_flair:
+        try:
+            m76_karma = int(item)
+            break
+        except ValueError:
+            pass
+    if m76_karma is None:
         bot_responses.something_went_wrong(comment, "r/Market76")
         return
 
