@@ -13,6 +13,7 @@ import prawcore
 import requests
 
 import bot_responses
+from keep_alive import keep_alive
 
 
 def post_to_pastebin(title, body):
@@ -209,4 +210,5 @@ if __name__ == '__main__':
     FIFTY_TO_HUNDRED_FLAIR = "2624bc6a-4a4d-11eb-8b7c-0e6968d78889"
     ZERO_TO_FIFTY_FLAIR = "3c680234-4a4d-11eb-8124-0edd2b620987"
     karma_transfer_db = sqlite3.connect('karma_transfer_history.db')
+    keep_alive()
     main()
