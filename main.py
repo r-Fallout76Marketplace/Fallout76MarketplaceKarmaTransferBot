@@ -180,8 +180,7 @@ def main():
             for comment in comment_stream:
                 if comment is None:
                     break
-                if check_comments(comment, market76, fallout76marketplace) == -1:
-                    bot_responses.no_submission_found(comment)
+                check_comments(comment, market76, fallout76marketplace)
                 failed_attempt = 1
         except KeyboardInterrupt:
             break
