@@ -201,7 +201,7 @@ def main():
                 failed_attempt += 1
 
             comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
-        print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
+    print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
 
 
 # Entry point
