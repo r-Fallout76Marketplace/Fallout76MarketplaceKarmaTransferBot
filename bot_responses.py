@@ -46,8 +46,8 @@ def something_went_wrong(comment, subreddit_name):
 
 def transfer_information(comment, row, username):
     if row:
-        comment_body = f"The reddit user {row[2]} transferred {row[2]} karma from Market76 on {row[0]}. Following is " \
-                       f"the direct link for the comment: [Comment Link]({row[3]})"
+        comment_body = f"The reddit user {row[1]} transferred {row[2]} karma from Market76 on {row[0]}. Following is " \
+                       f"the direct link to their comment: [Comment Link]({row[3]})"
     else:
         comment_body = f"The reddit user {username} has not yet transferred their karma from Market76. If you are " \
                        f"that user, you may transfer karma by commenting \"!xferkarma\" (without quotes)."
