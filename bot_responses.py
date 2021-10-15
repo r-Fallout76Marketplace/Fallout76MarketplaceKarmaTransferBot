@@ -43,3 +43,12 @@ def something_went_wrong(comment, subreddit_name):
     comment_body = "Hi " + comment.author.name + "! something went wrong while getting "
     comment_body += "karma from {}. Please contact mods asap.".format(subreddit_name)
     reply(comment, comment_body)
+
+def transfer_information(comment, row, username):
+    if row:
+        comment_body = f"The reddit user {row[2]} transferred {row[2]} karma from Market76 on {row[0]}. Following is " \
+                       f"the direct link for the comment: [Comment Link]({row[3]})"
+    else:
+        comment_body = f"The reddit user {username} has not yet transferred their karma from Market76. If you are " \
+                       f"that user, you may transfer karma by commenting \"!xferkarma\" (without quotes)."
+    reply(comment, comment_body)

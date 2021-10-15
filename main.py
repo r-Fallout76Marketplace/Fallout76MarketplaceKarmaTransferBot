@@ -86,7 +86,7 @@ def transfer_karma(comment, submission, fallout76marketplace):
         bot_responses.no_karma_on_market76(comment)
         return None
 
-    cursor.execute("SELECT * from karma_transfer_history WHERE author_name='{}'".format(comment.author.name))
+    cursor.execute(f"SELECT * from karma_transfer_history WHERE author_name='{comment.author.name}'")
     result = cursor.fetchone()
     if result is not None:
         bot_responses.already_transferred(comment, result)
@@ -121,10 +121,9 @@ def transfer_karma(comment, submission, fallout76marketplace):
     total_karma = m76_karma + our_karma
     assign_flair(karma_value=total_karma, author_name=author_name, fallout76marketplace=fallout76marketplace)
     url = 'https://www.reddit.com{}'.format(comment.permalink)
-    cursor.execute("""INSERT INTO karma_transfer_history VALUES ('{}', '{}', '{}', '{}')""".format(current_date_time,
-                                                                                                   author_name,
-                                                                                                   m76_karma,
-                                                                                                   url))
+    cursor.execute(f"INSERT INTO karma_transfer_history VALUES ('{current_date_time}', "
+                   f"'{author_name}', '{m76_karma}', '{url}')")
+
     karma_transfer_db.commit()
     cursor.close()
     bot_responses.transfer_successful(comment, m76_karma, total_karma)
@@ -133,15 +132,11 @@ def transfer_karma(comment, submission, fallout76marketplace):
 
 def check_comments(comment, market76, fallout76marketplace):
     """
-    Checks the comment body for the xferkarma comment and if it exits gets the last 1000 submission from the
-    user to get their user flair from Market76
+    Checks the comment body for the xferkarma commands and execute it accordingly
 
     :param comment: Praw comment object
     :param market76: Subreddit object
     :param fallout76marketplace: Subreddit in which the flair will be assigned
-    :return: 1 if submission is found
-            -1 if no submission is found
-            0 if the comment did not contain the command
     """
     comment_body = comment.body.lower().strip()
     if re.search(r'^(xferkarma!|!xferkarma)$', comment_body, re.IGNORECASE):
@@ -150,9 +145,14 @@ def check_comments(comment, market76, fallout76marketplace):
         for submission in submissions:
             if submission.subreddit == market76:
                 transfer_karma(comment, submission, fallout76marketplace)
-                return 1
-        return -1
-    return 0
+                break
+        else:
+            bot_responses.no_submission_found(comment)
+    elif result := re.search(r'^(xferkarma info [A-Za-z0-9_-]+)$', comment_body, re.IGNORECASE):
+        with closing(karma_transfer_db.cursor()) as cursor:
+            cursor.execute("SELECT * from karma_transfer_history WHERE author_name=?", (result.group(1).split()[-1],))
+            row = cursor.fetchone()
+        bot_responses.transfer_information(comment, row, result.group(1).split()[-1])
 
 
 def main():
