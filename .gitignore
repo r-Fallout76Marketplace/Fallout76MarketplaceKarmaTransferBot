@@ -3,3 +3,5 @@ __pycache__
 venv
 .idea
 karma_transfer_history.db
+karma_xfer_bot
+karma_xfer_bot.pub

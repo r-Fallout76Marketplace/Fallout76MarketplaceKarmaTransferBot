@@ -14,12 +14,11 @@ def reply(comment_or_submission, body):
         pass
 
 
-def transfer_successful(comment, karma):
-    comment_body = "Hi " + comment.author.name + "! The bot was successfully able to transfer {} karma ".format(karma)
-    comment_body += "from Market76 to here. Please note that you can transfer karma only once.\n\nNote that here karma "
-    comment_body += "is given on successful trade and only be given once per trade. If your karma is below 100, you "
-    comment_body += "can have a limit on how much karma you can give per day. You can find more info by checking the "
-    comment_body += "[pinned post](https://www.reddit.com/r/Fallout76Marketplace/comments/lf5wjp/karma_bot_new_update/)"
+def transfer_successful(comment, m76_karma, total_karma):
+    comment_body = f"Hi {comment.author.name}! The bot was successfully able to transfer {m76_karma} karma from " \
+                   f"Market76 to here. Your total karma is now {total_karma}.You can transfer karma to here only once. " \
+                   f"Note that here karma is given on successful trade and only be given once per trade. Also, you are " \
+                   f"limited to giving 10 karma per day.\n\nThank you for your cooperation!"
     reply(comment, comment_body)
 
 
