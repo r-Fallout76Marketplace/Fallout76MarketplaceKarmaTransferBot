@@ -269,16 +269,11 @@ if __name__ == '__main__':
     karma_transfer_db = sqlite3.connect('karma_transfer_history.db')
 
     # Logging into Reddit
-    # reddit = praw.Reddit(client_id=os.getenv("client_id"),
-    #                      client_secret=os.getenv("client_secret"),
-    #                      username=os.getenv("username"),
-    #                      password=os.getenv("password"),
-    #                      user_agent=f"{platform.platform()}:KarmaTransfer:2.0 (by u/is_fake_Account)")
+    reddit = praw.Reddit(client_id=os.getenv("client_id"),
+                         client_secret=os.getenv("client_secret"),
+                         username=os.getenv("username"),
+                         password=os.getenv("password"),
+                         user_agent=f"{platform.platform()}:KarmaTransfer:2.0 (by u/is_fake_Account)")
 
-    reddit = praw.Reddit(client_id='gBdHFBhzQ-PA-g',
-                         client_secret='nhSiNQKJJJDz2bVgnIl3_DVSUN8sMw',
-                         username='Fallout76MktPlBot',
-                         password='FO76mpB0t1.',
-                         user_agent=f"{platform.platform()}:KarmaTransfer:1.0 (by u/is_fake_Account)")
     keep_alive()
     main()
