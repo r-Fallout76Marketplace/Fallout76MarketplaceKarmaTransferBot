@@ -90,33 +90,37 @@ def is_mod_or_courier(author, fallout76marketplace):
     return False
 
 
-def assign_flair(comment, flair_text_list, karma_tuple, author_name, fallout76marketplace):
+def assign_flair(comment, flair_text_list, karma_tuple, awardee_redditor, fallout76marketplace):
     """
     Assigns user flair to a user based on the karma value
 
     :param comment: The comment object of PRAW
     :param flair_text_list: Flair text template that will be used
     :param karma_tuple: Tuple of fallout76marketplace and market76 karma
-    :param author_name: The name of the user
+    :param awardee_redditor: The name of the user
     :param fallout76marketplace: Subreddit in which the flair will be assigned
     :return: None
     """
     user_flair = f"{' '.join(flair_text_list)} {sum(karma_tuple)}"
-    if is_mod_or_courier(comment.author, fallout76marketplace):
-        fallout76marketplace.flair.set(author_name, text=user_flair, flair_template_id=MODS_AND_COURIERS_FLAIR)
+    if is_mod_or_courier(awardee_redditor, fallout76marketplace):
+        fallout76marketplace.flair.set(awardee_redditor.name, text=user_flair,
+                                       flair_template_id=MODS_AND_COURIERS_FLAIR)
     else:
         if sum(karma_tuple) < 49:
-            fallout76marketplace.flair.set(author_name, text=user_flair, flair_template_id=ZERO_TO_FIFTY_FLAIR)
+            fallout76marketplace.flair.set(awardee_redditor.name, text=user_flair,
+                                           flair_template_id=ZERO_TO_FIFTY_FLAIR)
         elif 50 <= sum(karma_tuple) < 99:
-            fallout76marketplace.flair.set(author_name, text=user_flair, flair_template_id=FIFTY_TO_HUNDRED_FLAIR)
+            fallout76marketplace.flair.set(awardee_redditor.name, text=user_flair,
+                                           flair_template_id=FIFTY_TO_HUNDRED_FLAIR)
         else:
-            fallout76marketplace.flair.set(author_name, text=user_flair, flair_template_id=ABOVE_HUNDRED_FLAIR)
+            fallout76marketplace.flair.set(awardee_redditor.name, text=user_flair,
+                                           flair_template_id=ABOVE_HUNDRED_FLAIR)
 
     url = f'https://www.reddit.com{comment.permalink}'
     current_date_time = datetime.datetime.utcnow().strftime('%Y-%m-%d %I:%M %p UTC')
     with closing(karma_transfer_db.cursor()) as cursor:
         cursor.execute(f"INSERT OR REPLACE INTO karma_transfer_history VALUES ('{current_date_time}', "
-                       f"'{author_name}', '{karma_tuple[-1]}', '{url}')")
+                       f"'{awardee_redditor}', '{karma_tuple[-1]}', '{url}')")
     karma_transfer_db.commit()
 
 
@@ -163,7 +167,7 @@ def transfer_karma(comment, m76_submission, fallout76marketplace):
             return None
 
     flair_text_list = user_flair[:-1]
-    assign_flair(comment, flair_text_list, (our_karma, m76_karma), author_name, fallout76marketplace)
+    assign_flair(comment, flair_text_list, (our_karma, m76_karma), comment.author, fallout76marketplace)
     bot_responses.transfer_successful(comment, (our_karma, m76_karma))
     return None
 
@@ -209,10 +213,10 @@ def check_comments(comment, market76, fallout76marketplace):
                     current_flair = next(fallout76marketplace.flair(author_name))
                     if current_flair['user'] == redditor:
                         flair_text_list = current_flair['flair_text'].split()[:-1]
-                        assign_flair(comment, flair_text_list, (karma,), redditor.name, fallout76marketplace)
+                        assign_flair(comment, flair_text_list, (karma,), redditor, fallout76marketplace)
                     else:
                         flair_text_list = ['Karma:']
-                        assign_flair(comment, flair_text_list, (karma,), redditor.name, fallout76marketplace)
+                        assign_flair(comment, flair_text_list, (karma,), redditor, fallout76marketplace)
                     bot_responses.karma_assigned(comment, karma, author_name)
             except (AttributeError, prawcore.exceptions.NotFound):
                 bot_responses.user_banned_or_not_found(comment, author_name)

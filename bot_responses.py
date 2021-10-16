@@ -68,5 +68,5 @@ def user_banned_or_not_found(comment, author_name):
 
 
 def karma_assigned(comment, karma, author_name):
-    comment_body = f"Hi {comment.author.name}, the user {author_name} has been given {karma} karma successfully."
+    comment_body = f"Hi {comment.author.name}, the user {author_name} karma has been changed to {karma} successfully."
     reply(comment, comment_body)
