@@ -115,7 +115,7 @@ def assign_flair(comment, flair_text_list, karma_tuple, author_name, fallout76ma
     url = f'https://www.reddit.com{comment.permalink}'
     current_date_time = datetime.datetime.utcnow().strftime('%Y-%m-%d %I:%M %p UTC')
     with closing(karma_transfer_db.cursor()) as cursor:
-        cursor.execute(f"INSERT INTO karma_transfer_history VALUES ('{current_date_time}', "
+        cursor.execute(f"INSERT OR REPLACE INTO karma_transfer_history VALUES ('{current_date_time}', "
                        f"'{author_name}', '{karma_tuple[-1]}', '{url}')")
     karma_transfer_db.commit()
 
@@ -176,7 +176,7 @@ def check_comments(comment, market76, fallout76marketplace):
     :param market76: Subreddit object
     :param fallout76marketplace: Subreddit in which the flair will be assigned
     """
-    comment_body = comment.body.lower().strip()
+    comment_body = comment.body.lower().strip().replace("\\", "")
     if re.search(r'^(xferkarma!|!xferkarma)$', comment_body, re.IGNORECASE):
         author = comment.author
         submissions = author.submissions.new(limit=None)
@@ -221,10 +221,9 @@ def check_comments(comment, market76, fallout76marketplace):
 def main():
     # Creating table if it doesn't exist
     with closing(karma_transfer_db.cursor()) as cursor:
-        cursor.execute("""CREATE TABLE IF NOT EXISTS karma_transfer_history (date TEXT, author_name TEXT, 
+        cursor.execute("""CREATE TABLE IF NOT EXISTS karma_transfer_history (date TEXT, author_name TEXT UNIQUE, 
                                                                                         karma INTEGER, 
                                                                                         comment_url TEXT)""")
-        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS author_index ON karma_transfer_history (author_name)")
     karma_transfer_db.commit()
     print("Bot is now live!", time.strftime('%I:%M %p %Z'))
 
@@ -270,10 +269,16 @@ if __name__ == '__main__':
     karma_transfer_db = sqlite3.connect('karma_transfer_history.db')
 
     # Logging into Reddit
-    reddit = praw.Reddit(client_id=os.getenv("client_id"),
-                         client_secret=os.getenv("client_secret"),
-                         username=os.getenv("username"),
-                         password=os.getenv("password"),
-                         user_agent=f"{platform.platform()}:KarmaTransfer:2.0 (by u/is_fake_Account)")
+    # reddit = praw.Reddit(client_id=os.getenv("client_id"),
+    #                      client_secret=os.getenv("client_secret"),
+    #                      username=os.getenv("username"),
+    #                      password=os.getenv("password"),
+    #                      user_agent=f"{platform.platform()}:KarmaTransfer:2.0 (by u/is_fake_Account)")
+
+    reddit = praw.Reddit(client_id='gBdHFBhzQ-PA-g',
+                         client_secret='nhSiNQKJJJDz2bVgnIl3_DVSUN8sMw',
+                         username='Fallout76MktPlBot',
+                         password='FO76mpB0t1.',
+                         user_agent=f"{platform.platform()}:KarmaTransfer:1.0 (by u/is_fake_Account)")
     keep_alive()
     main()
