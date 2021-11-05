@@ -118,7 +118,7 @@ def assign_flair(comment, flair_text_list, karma_tuple, awardee_redditor, fallou
 
     url = f'https://www.reddit.com{comment.permalink}'
     current_date_time = datetime.datetime.utcnow().strftime('%Y-%m-%d %I:%M %p UTC')
-    with closing(psycopg2.connect(os.getenv('database_url'), sslmode='require')) as db_conn:
+    with closing(psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')) as db_conn:
         with closing(db_conn.cursor()) as cursor:
             query = sql.SQL("INSERT INTO karma_transfer_history (date, author_name, karma, comment_url) "
                             "VALUES (%s, %s, %s, %s) ON CONFLICT (author_name) DO UPDATE SET "
@@ -136,7 +136,7 @@ def transfer_karma(comment, m76_submission, fallout76marketplace):
         return None
 
     # Checking if user has already transferred karma
-    with closing(psycopg2.connect(os.getenv('database_url'), sslmode='require')) as db_conn:
+    with closing(psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')) as db_conn:
         with closing(db_conn.cursor()) as cursor:
             cursor.execute("SELECT * from karma_transfer_history WHERE author_name=%s", (author_name,))
             result = cursor.fetchone()
@@ -198,7 +198,7 @@ def check_comments(comment, market76, fallout76marketplace):
             bot_responses.no_submission_found(comment)
     elif result := re.search(r'^(xferkarma info [A-Za-z0-9_-]+)$', comment_body, re.IGNORECASE):
         if is_mod(comment.author, fallout76marketplace):
-            with closing(psycopg2.connect(os.getenv('database_url'), sslmode='require')) as db_conn:
+            with closing(psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')) as db_conn:
                 with closing(db_conn.cursor()) as cursor:
                     cursor.execute("SELECT * from karma_transfer_history WHERE author_name~*%s",
                                    (result.group(1).split()[-1],))
@@ -231,7 +231,7 @@ def check_comments(comment, market76, fallout76marketplace):
 
 def main():
     # Creating table if it doesn't exist
-    with closing(psycopg2.connect(os.getenv('database_url'), sslmode='require')) as db_conn:
+    with closing(psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')) as db_conn:
         with closing(db_conn.cursor()) as cursor:
             cursor.execute("""CREATE TABLE IF NOT EXISTS karma_transfer_history (date TEXT, author_name TEXT, 
                                                                                             karma INTEGER, 
