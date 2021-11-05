@@ -171,8 +171,10 @@ def transfer_karma(comment, m76_submission, fallout76marketplace):
         except ValueError:
             bot_responses.something_went_wrong(comment, "r/Fallout76Marketplace")
             return None
+        flair_text_list = user_flair[:-1]
+    else:
+        flair_text_list = ['Karma:']
 
-    flair_text_list = user_flair[:-1]
     assign_flair(comment, flair_text_list, (our_karma, m76_karma), comment.author, fallout76marketplace)
     bot_responses.transfer_successful(comment, (our_karma, m76_karma))
     return None
