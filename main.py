@@ -3,17 +3,17 @@ import json
 import os
 import platform
 import re
-import sqlite3
 import time
 import traceback
 from contextlib import closing
 
 import praw
 import prawcore
+import psycopg2
 import requests
+from psycopg2 import sql
 
 import bot_responses
-from keep_alive import keep_alive
 
 
 def post_to_pastebin(title, body):
@@ -118,10 +118,14 @@ def assign_flair(comment, flair_text_list, karma_tuple, awardee_redditor, fallou
 
     url = f'https://www.reddit.com{comment.permalink}'
     current_date_time = datetime.datetime.utcnow().strftime('%Y-%m-%d %I:%M %p UTC')
-    with closing(karma_transfer_db.cursor()) as cursor:
-        cursor.execute(f"INSERT OR REPLACE INTO karma_transfer_history VALUES ('{current_date_time}', "
-                       f"'{awardee_redditor}', '{karma_tuple[-1]}', '{url}')")
-    karma_transfer_db.commit()
+    with closing(psycopg2.connect(os.getenv('database_url'), sslmode='require')) as db_conn:
+        with closing(db_conn.cursor()) as cursor:
+            query = sql.SQL("INSERT INTO karma_transfer_history (date, author_name, karma, comment_url) "
+                            "VALUES (%s, %s, %s, %s) ON CONFLICT (author_name) DO UPDATE SET "
+                            "(date, author_name, karma, comment_url) = "
+                            "(EXCLUDED.date, EXCLUDED.author_name, EXCLUDED.karma, EXCLUDED.comment_url)")
+            cursor.execute(query, (current_date_time, awardee_redditor, karma_tuple[-1], url))
+        db_conn.commit()
 
 
 def transfer_karma(comment, m76_submission, fallout76marketplace):
@@ -132,9 +136,10 @@ def transfer_karma(comment, m76_submission, fallout76marketplace):
         return None
 
     # Checking if user has already transferred karma
-    with closing(karma_transfer_db.cursor()) as cursor:
-        cursor.execute(f"SELECT * from karma_transfer_history WHERE author_name='{comment.author.name}'")
-        result = cursor.fetchone()
+    with closing(psycopg2.connect(os.getenv('database_url'), sslmode='require')) as db_conn:
+        with closing(db_conn.cursor()) as cursor:
+            cursor.execute("SELECT * from karma_transfer_history WHERE author_name=%s", (author_name,))
+            result = cursor.fetchone()
 
     if result is not None:
         bot_responses.already_transferred(comment, result)
@@ -180,6 +185,7 @@ def check_comments(comment, market76, fallout76marketplace):
     :param market76: Subreddit object
     :param fallout76marketplace: Subreddit in which the flair will be assigned
     """
+    # De-escaping to add support for reddit fancy-pants editor
     comment_body = comment.body.lower().strip().replace("\\", "")
     if re.search(r'^(xferkarma!|!xferkarma)$', comment_body, re.IGNORECASE):
         author = comment.author
@@ -192,11 +198,12 @@ def check_comments(comment, market76, fallout76marketplace):
             bot_responses.no_submission_found(comment)
     elif result := re.search(r'^(xferkarma info [A-Za-z0-9_-]+)$', comment_body, re.IGNORECASE):
         if is_mod(comment.author, fallout76marketplace):
-            with closing(karma_transfer_db.cursor()) as cursor:
-                cursor.execute("SELECT * from karma_transfer_history WHERE author_name=? COLLATE NOCASE",
-                               (result.group(1).split()[-1],))
-                row = cursor.fetchone()
-            bot_responses.transfer_information(comment, row, result.group(1).split()[-1])
+            with closing(psycopg2.connect(os.getenv('database_url'), sslmode='require')) as db_conn:
+                with closing(db_conn.cursor()) as cursor:
+                    cursor.execute("SELECT * from karma_transfer_history WHERE author_name~*%s",
+                                   (result.group(1).split()[-1],))
+                    row = cursor.fetchone()
+                bot_responses.transfer_information(comment, row, result.group(1).split()[-1])
     elif result := re.search(r'^(setkarma [A-Za-z0-9_-]+) \d+$', comment_body, re.IGNORECASE):
         if is_mod(comment.author, fallout76marketplace):
             author_name = result.group(0).split()[-2]
@@ -224,13 +231,16 @@ def check_comments(comment, market76, fallout76marketplace):
 
 def main():
     # Creating table if it doesn't exist
-    with closing(karma_transfer_db.cursor()) as cursor:
-        cursor.execute("""CREATE TABLE IF NOT EXISTS karma_transfer_history (date TEXT, author_name TEXT UNIQUE, 
-                                                                                        karma INTEGER, 
-                                                                                        comment_url TEXT)""")
-    karma_transfer_db.commit()
-    print("Bot is now live!", time.strftime('%I:%M %p %Z'))
+    with closing(psycopg2.connect(os.getenv('database_url'), sslmode='require')) as db_conn:
+        with closing(db_conn.cursor()) as cursor:
+            cursor.execute("""CREATE TABLE IF NOT EXISTS karma_transfer_history (date TEXT, author_name TEXT, 
+                                                                                            karma INTEGER, 
+                                                                                            comment_url TEXT)""")
+            cursor.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS author_name_index ON karma_transfer_history (author_name)")
+        db_conn.commit()
 
+    print("Bot is now live!", time.strftime('%I:%M %p %Z'))
     fallout76marketplace = reddit.subreddit("Fallout76Marketplace")
     market76 = reddit.subreddit("Market76")
     failed_attempt = 1
@@ -270,14 +280,11 @@ if __name__ == '__main__':
     FIFTY_TO_HUNDRED_FLAIR = "2624bc6a-4a4d-11eb-8b7c-0e6968d78889"
     ZERO_TO_FIFTY_FLAIR = "3c680234-4a4d-11eb-8124-0edd2b620987"
     MODS_AND_COURIERS_FLAIR = "51524056-4a4d-11eb-814b-0e7b734c1fd5"
-    karma_transfer_db = sqlite3.connect('karma_transfer_history.db')
 
     # Logging into Reddit
     reddit = praw.Reddit(client_id=os.getenv("client_id"),
                          client_secret=os.getenv("client_secret"),
-                         username=os.getenv("username"),
-                         password=os.getenv("password"),
+                         username=os.getenv("reddit_username"),
+                         password=os.getenv("reddit_password"),
                          user_agent=f"{platform.platform()}:KarmaTransfer:2.0 (by u/is_fake_Account)")
-
-    keep_alive()
     main()

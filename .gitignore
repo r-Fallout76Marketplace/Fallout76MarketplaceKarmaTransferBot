@@ -5,4 +5,5 @@ venv
 karma_transfer_history.db
 karma_xfer_bot
 karma_xfer_bot.pub
-praw.ini
+.env
+test.py
