@@ -124,7 +124,7 @@ def assign_flair(comment, flair_text_list, karma_tuple, awardee_redditor, fallou
                             "VALUES (%s, %s, %s, %s) ON CONFLICT (author_name) DO UPDATE SET "
                             "(date, author_name, karma, comment_url) = "
                             "(EXCLUDED.date, EXCLUDED.author_name, EXCLUDED.karma, EXCLUDED.comment_url)")
-            cursor.execute(query, (current_date_time, awardee_redditor, karma_tuple[-1], url))
+            cursor.execute(query, (current_date_time, awardee_redditor.name, karma_tuple[-1], url))
         db_conn.commit()
 
 
