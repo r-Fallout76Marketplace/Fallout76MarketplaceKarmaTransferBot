@@ -5,6 +5,7 @@ praw==7.4.0
 prawcore==2.3.0
 psycopg2-binary==2.9.1
 python-dotenv==0.19.1
+PyYAML==6.0
 requests==2.26.0
 update-checker==0.18.0
 urllib3==1.26.7

@@ -11,6 +11,7 @@ import praw
 import prawcore
 import psycopg2
 import requests
+import yaml
 from psycopg2 import sql
 
 import bot_responses
@@ -80,9 +81,9 @@ def is_mod_or_courier(author, fallout76marketplace):
     if author is None:
         return False
     moderators_list = fallout76marketplace.moderator()
-    wiki = fallout76marketplace.wiki["custom_bot_config"]
-    json_format = json.loads(wiki.content_md)
-    courier_list = json_format['couriers']
+    wiki = fallout76marketplace.wiki["custom_bot_config/courier_list"]
+    yaml_format = yaml.safe_load(wiki.content_md)
+    courier_list = [x.lower() for x in yaml_format['couriers']]
     if author in moderators_list:
         return True
     if author.name.lower() in courier_list:
