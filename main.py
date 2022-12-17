@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import os
 import platform
 import re
@@ -7,6 +8,7 @@ import sqlite3
 import time
 import traceback
 from contextlib import closing
+from logging.config import fileConfig
 
 import praw
 import prawcore
@@ -17,6 +19,15 @@ from dotenv import load_dotenv
 import bot_responses
 
 load_dotenv()
+
+
+def create_logger() -> logging.Logger:
+    """Creates logger and returns an instance of logging object.
+    :returns: Logging Object.
+    """
+    fileConfig("logging.conf")
+    logger = logging.getLogger("basedcount_bot")
+    return logger
 
 
 def post_to_pastebin(title, body):
@@ -192,9 +203,10 @@ def check_comments(comment, market76, fallout76marketplace):
     """
     # De-escaping to add support for reddit fancy-pants editor
     comment_body = comment.body.lower().strip().replace("\\", "")
+    comment_author = comment.author
+    main_logger.info(f"{comment_author} {comment_body}")
     if re.search(r'^(xferkarma!|!xferkarma)$', comment_body, re.IGNORECASE):
-        author = comment.author
-        submissions = author.submissions.new(limit=None)
+        submissions = comment_author.submissions.new(limit=None)
         for submission in submissions:
             if submission.subreddit == market76:
                 transfer_karma(comment, submission, fallout76marketplace)
@@ -241,7 +253,6 @@ def main():
             cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS author_name_index ON karma_transfer_history (author_name)")
         db_conn.commit()
 
-    print("Bot is now live!", time.strftime('%I:%M %p %Z'))
     fallout76marketplace = reddit.subreddit("Fallout76Marketplace")
     market76 = reddit.subreddit("Market76")
     failed_attempt = 1
@@ -255,16 +266,16 @@ def main():
                 failed_attempt = 1
         except Exception as exp:
             tb = traceback.format_exc()
+            main_logger.exception("Error in Bot", exc_info=True)
             try:
                 url = post_to_pastebin(f"{type(exp).__name__}: {exp}", tb)
                 send_message_to_discord(f"[{type(exp).__name__}: {exp}]({url})")
-            except Exception as discord_exception:
-                print(tb)
-                print("\nError sending message to discord", str(discord_exception))
+            except requests.HTTPError:
+                main_logger.exception("Error sending message to discord", exc_info=True)
 
             # In case of server error pause for multiple of 5 minutes
             if isinstance(exp, (prawcore.exceptions.ServerError, prawcore.exceptions.RequestException)):
-                print(f"Waiting {(300 * failed_attempt) / 60} minutes...")
+                main_logger.info(f"Waiting {(300 * failed_attempt) / 60} minutes...")
                 time.sleep(300 * failed_attempt)
                 failed_attempt += 1
 
@@ -284,4 +295,6 @@ if __name__ == '__main__':
                          username=os.getenv("reddit_username"),
                          password=os.getenv("reddit_password"),
                          user_agent=f"{platform.platform()}:KarmaTransfer:2.0 (by u/is_fake_Account)")
+    main_logger = create_logger()
+    main_logger.info(f"Logged into {reddit.user.me()} Account.")
     main()
