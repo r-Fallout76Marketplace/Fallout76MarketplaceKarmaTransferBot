@@ -144,7 +144,7 @@ def assign_flair(comment, flair_text_list, karma_tuple, awardee_redditor, fallou
 def transfer_karma(comment, m76_submission, fallout76marketplace):
     # If user has no flair we assume they have no karma as well
     author_name = comment.author.name
-    if m76_submission.author_flair_text is None:
+    if not m76_submission.author_flair_text:
         bot_responses.no_karma_on_market76(comment)
         return None
 
@@ -156,21 +156,14 @@ def transfer_karma(comment, m76_submission, fallout76marketplace):
             result = cursor.fetchone()
 
     if result is not None:
+        main_logger.info(f"Already Transferred: {result}")
         bot_responses.already_transferred(comment, result)
         return None
 
     # Extracting karma value from the flair
-    # Since the introduction of platform icons it is hard to tell with certainty where
-    # the karma value is located in flair could be :pc: +23 Karma or +23 Karma
-    m76_karma = 0
-    user_flair = m76_submission.author_flair_text.split()
-    for item in user_flair:
-        try:
-            m76_karma = int(item)
-            break
-        except ValueError:
-            pass
-    if not m76_karma:
+    if result := re.search(r"\+(\d+)", m76_submission.author_flair_text):
+        m76_karma = int(result.group(1))
+    else:
         bot_responses.something_went_wrong(comment, "r/Market76")
         return None
 
@@ -297,4 +290,5 @@ if __name__ == '__main__':
                          user_agent=f"{platform.platform()}:KarmaTransfer:2.0 (by u/is_fake_Account)")
     main_logger = create_logger()
     main_logger.info(f"Logged into {reddit.user.me()} Account.")
+    transfer_karma(reddit.comment(id="j0n5sys"), reddit.submission(id="zoiuou"), reddit.subreddit("Fallout76Marketplace"))
     main()

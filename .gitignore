@@ -8,3 +8,4 @@ karma_xfer_bot
 karma_xfer_bot.pub
 .env
 test.py
+*.log*
