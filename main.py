@@ -3,18 +3,20 @@ import json
 import os
 import platform
 import re
+import sqlite3
 import time
 import traceback
 from contextlib import closing
 
 import praw
 import prawcore
-import psycopg2
 import requests
 import yaml
-from psycopg2 import sql
+from dotenv import load_dotenv
 
 import bot_responses
+
+load_dotenv()
 
 
 def post_to_pastebin(title, body):
@@ -119,14 +121,13 @@ def assign_flair(comment, flair_text_list, karma_tuple, awardee_redditor, fallou
 
     url = f'https://www.reddit.com{comment.permalink}'
     current_date_time = datetime.datetime.utcnow().strftime('%Y-%m-%d %I:%M %p UTC')
-    with closing(psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')) as db_conn:
+    with closing(sqlite3.connect("karma_transfer_history.db")) as db_conn:
         with closing(db_conn.cursor()) as cursor:
-            query = sql.SQL("INSERT INTO karma_transfer_history (date, author_name, karma, comment_url) "
-                            "VALUES (%s, %s, %s, %s) ON CONFLICT (author_name) DO UPDATE SET "
-                            "(date, author_name, karma, comment_url) = "
-                            "(EXCLUDED.date, EXCLUDED.author_name, EXCLUDED.karma, EXCLUDED.comment_url)")
+            query = "INSERT INTO karma_transfer_history (date, author_name, karma, comment_url) VALUES (?, ?, ?, ?) " \
+                    "ON CONFLICT (author_name) " \
+                    "DO UPDATE SET date=excluded.date, author_name=excluded.author_name, karma=excluded.karma, comment_url=excluded.comment_url"
             cursor.execute(query, (current_date_time, awardee_redditor.name, karma_tuple[-1], url))
-        db_conn.commit()
+            db_conn.commit()
 
 
 def transfer_karma(comment, m76_submission, fallout76marketplace):
@@ -137,9 +138,10 @@ def transfer_karma(comment, m76_submission, fallout76marketplace):
         return None
 
     # Checking if user has already transferred karma
-    with closing(psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')) as db_conn:
+    with closing(sqlite3.connect("karma_transfer_history.db")) as db_conn:
         with closing(db_conn.cursor()) as cursor:
-            cursor.execute("SELECT * from karma_transfer_history WHERE author_name=%s", (author_name,))
+            author_name = {"username": author_name}
+            cursor.execute("SELECT * from karma_transfer_history WHERE author_name = :username", author_name)
             result = cursor.fetchone()
 
     if result is not None:
@@ -199,32 +201,31 @@ def check_comments(comment, market76, fallout76marketplace):
                 break
         else:
             bot_responses.no_submission_found(comment)
-    elif result := re.search(r'^(xferkarma info [A-Za-z0-9_-]+)$', comment_body, re.IGNORECASE):
+    elif result := re.match(r'xferkarma info ([A-Za-z0-9_-]+)$', comment_body, re.IGNORECASE):
         if is_mod(comment.author, fallout76marketplace):
-            with closing(psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')) as db_conn:
+            with closing(sqlite3.connect("karma_transfer_history.db")) as db_conn:
                 with closing(db_conn.cursor()) as cursor:
-                    cursor.execute("SELECT * from karma_transfer_history WHERE author_name~*%s",
-                                   (result.group(1).split()[-1],))
+                    author_name = {"username": result.group(1)}
+                    cursor.execute("SELECT * from karma_transfer_history WHERE author_name = :username COLLATE NOCASE", author_name)
                     row = cursor.fetchone()
-                bot_responses.transfer_information(comment, row, result.group(1).split()[-1])
-    elif result := re.search(r'^(setkarma [A-Za-z0-9_-]+) \d+$', comment_body, re.IGNORECASE):
+                bot_responses.transfer_information(comment, row, result.group(1))
+    elif result := re.match(r'setkarma ([A-Za-z0-9_-]+) (\d+)$', comment_body, re.IGNORECASE):
         if is_mod(comment.author, fallout76marketplace):
-            author_name = result.group(0).split()[-2]
+            author_name = result.group(1)
             redditor = reddit.redditor(author_name)
             try:
                 _ = redditor.fullname
                 if any(reddit.subreddit('Fallout76Marketplace').banned(author_name)):
                     bot_responses.user_banned_from_subreddit(comment, author_name)
                 else:
-                    karma = int(result.group(0).split()[-1])
-
-                    # If user already has a flair we want to make sure that everything besides karma value
-                    # is preserved
+                    karma = int(result.group(2))
+                    # If user already has a flair we want to make sure that everything besides karma value is preserved
                     current_flair = next(fallout76marketplace.flair(author_name))
                     if current_flair['user'] == redditor:
                         flair_text_list = current_flair['flair_text'].split()[:-1]
                         assign_flair(comment, flair_text_list, (karma,), redditor, fallout76marketplace)
                     else:
+                        # If user does not have a flair
                         flair_text_list = ['Karma:']
                         assign_flair(comment, flair_text_list, (karma,), redditor, fallout76marketplace)
                     bot_responses.karma_assigned(comment, karma, author_name)
@@ -234,13 +235,10 @@ def check_comments(comment, market76, fallout76marketplace):
 
 def main():
     # Creating table if it doesn't exist
-    with closing(psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')) as db_conn:
+    with closing(sqlite3.connect("karma_transfer_history.db")) as db_conn:
         with closing(db_conn.cursor()) as cursor:
-            cursor.execute("""CREATE TABLE IF NOT EXISTS karma_transfer_history (date TEXT, author_name TEXT, 
-                                                                                            karma INTEGER, 
-                                                                                            comment_url TEXT)""")
-            cursor.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS author_name_index ON karma_transfer_history (author_name)")
+            cursor.execute("""CREATE TABLE IF NOT EXISTS karma_transfer_history (date TEXT, author_name TEXT, karma INTEGER, comment_url TEXT)""")
+            cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS author_name_index ON karma_transfer_history (author_name)")
         db_conn.commit()
 
     print("Bot is now live!", time.strftime('%I:%M %p %Z'))
@@ -255,8 +253,6 @@ def main():
                     break
                 check_comments(comment, market76, fallout76marketplace)
                 failed_attempt = 1
-        except KeyboardInterrupt:
-            break
         except Exception as exp:
             tb = traceback.format_exc()
             try:
@@ -273,8 +269,6 @@ def main():
                 failed_attempt += 1
 
             comment_stream = fallout76marketplace.stream.comments(pause_after=-1, skip_existing=True)
-    print("Bot has stopped!", time.strftime('%I:%M %p %Z'))
-    quit(0)
 
 
 # Entry point
