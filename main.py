@@ -198,8 +198,8 @@ def check_comments(comment, market76, fallout76marketplace):
     # De-escaping to add support for reddit fancy-pants editor
     comment_body = comment.body.lower().strip().replace("\\", "")
     comment_author = comment.author
-    main_logger.info(f"{comment_author} {comment_body}")
     if re.search(r'^(xferkarma!|!xferkarma)$', comment_body, re.IGNORECASE):
+        main_logger.info(f"{comment_author} {comment_body}")
         submissions = comment_author.submissions.new(limit=None)
         for submission in submissions:
             if submission.subreddit == market76:
@@ -208,6 +208,7 @@ def check_comments(comment, market76, fallout76marketplace):
         else:
             bot_responses.no_submission_found(comment)
     elif result := re.match(r'xferkarma info ([A-Za-z0-9_-]+)$', comment_body, re.IGNORECASE):
+        main_logger.info(f"{comment_author} {comment_body}")
         if is_mod(comment.author, fallout76marketplace):
             with closing(sqlite3.connect("karma_transfer_history.db")) as db_conn:
                 with closing(db_conn.cursor()) as cursor:
@@ -216,6 +217,7 @@ def check_comments(comment, market76, fallout76marketplace):
                     row = cursor.fetchone()
                 bot_responses.transfer_information(comment, row, result.group(1))
     elif result := re.match(r'setkarma ([A-Za-z0-9_-]+) (\d+)$', comment_body, re.IGNORECASE):
+        main_logger.info(f"{comment_author} {comment_body}")
         if is_mod(comment.author, fallout76marketplace):
             author_name = result.group(1)
             redditor = reddit.redditor(author_name)
