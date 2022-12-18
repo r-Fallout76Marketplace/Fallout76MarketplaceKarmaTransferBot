@@ -137,7 +137,7 @@ def assign_flair(comment, flair_text_list, karma_tuple, awardee_redditor, fallou
             query = "INSERT INTO karma_transfer_history (date, author_name, karma, comment_url) VALUES (?, ?, ?, ?) " \
                     "ON CONFLICT (author_name) " \
                     "DO UPDATE SET date=excluded.date, author_name=excluded.author_name, karma=excluded.karma, comment_url=excluded.comment_url"
-            main_logger.info(f"Karma Transferred {(current_date_time, awardee_redditor.name, karma_tuple[-1], url)}")
+            main_logger.info(f"Karma Transferred {(current_date_time, awardee_redditor.name, karma_tuple, url)}")
             cursor.execute(query, (current_date_time, awardee_redditor.name, karma_tuple[-1], url))
             db_conn.commit()
 
