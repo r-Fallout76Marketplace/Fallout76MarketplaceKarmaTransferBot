@@ -293,5 +293,4 @@ if __name__ == '__main__':
                          user_agent=f"{platform.platform()}:RepTransferBot:2.0 (by u/__yoshikage_kira)")
     main_logger = create_logger()
     main_logger.info(f"Logged into {reddit.user.me()} Account.")
-    transfer_karma(reddit.comment(id="j0n5sys"), reddit.submission(id="zoiuou"), reddit.subreddit("Fallout76Marketplace"))
     main()
