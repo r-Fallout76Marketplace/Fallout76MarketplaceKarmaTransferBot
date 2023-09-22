@@ -2,7 +2,7 @@ CONFIG.py
 __pycache__
 venv
 .idea
-karma_transfer_history.db
+*.db
 karma_transfer_history.csv
 karma_xfer_bot
 karma_xfer_bot.pub
